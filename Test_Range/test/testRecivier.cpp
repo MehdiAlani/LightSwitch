@@ -2,25 +2,15 @@
 #include <ESP8266WiFi.h>
 #include <espnow.h> 
 
-#define BUZEER_PIN D5
-#define LED_PCB D4
 bool toogle = false;
-void onrecv(uint8_t * mac_sender,uint8_t * data,uint8_t len){
-    Serial.print("Recieved Msg: ");
-    for(uint8_t i = 0; i < len; i++){
-        Serial.print((char)data[i]);
-    }
-    toogle = !toogle;
-    digitalWrite(BUZEER_PIN,toogle);
-    digitalWrite(LED_PCB,toogle);
-    Serial.print(" SignalStrength: ");
-    Serial.print(WiFi.RSSI());
-    Serial.println("dB");
+uint32_t count_bytes = 0;
+uint32_t second_ms = 0;
+float speed_kbs = 0;
+void onrecv(uint8_t * mac,uint8_t * data,uint8_t len){
+    count_bytes = count_bytes + len;
 }
 
 void setup() {
-    pinMode(BUZEER_PIN,OUTPUT);
-    pinMode(LED_PCB,OUTPUT);
     Serial.begin(115200);
     WiFi.disconnect();
     WiFi.setOutputPower(20.5);
@@ -31,9 +21,17 @@ void setup() {
     }
     esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
     esp_now_register_recv_cb(onrecv);
+    second_ms = millis();
 }
-
+#define PRINT_TIME_MS 1000
 void loop() {
-
+    if(millis() - second_ms > PRINT_TIME_MS){
+        speed_kbs = count_bytes / 1024.0;  
+        Serial.print("Speed is :");
+        Serial.print(speed_kbs);
+        Serial.println("KB/s");
+        count_bytes = 0;
+        second_ms = millis();      
+      }
 }
 
